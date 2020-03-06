@@ -1,0 +1,81 @@
+.data
+	num:	.word 10, 12, 0 	
+	result_s:   .asciiz "The result is "
+	error_s:   .asciiz "Multiplication Error"
+.text
+	j main
+
+mult:	
+	ori $t3,0x7FFF        #making $t3 the biggest 16 bit num
+	
+	lw $a1, 0($a0)	 	      
+	slti $s2, $a1, 0     #if $a1 is less than 0 $s2 is set to 1
+ 	beqz $s2,Ok        #branch if zero 
+ 	nor $a1,$a1,$zero
+ 	addi $a1,$a1,1
+        addi $t3,$t3,1
+Ok:
+	lw $a2, 4($a0) 
+	slti $s3, $a2, 0     #if $a2 is less than 0 $s3 is set to 1
+ 	beqz $s3,Oki        #branch if zero 	
+ 	nor $a2,$a2,$zero
+ 	addi $a2,$a2,1 	
+ 	addi $t3,$t3,1
+Oki:	   
+
+		
+	slt $t4,$a1,$t3       #If $a1 is less than $t3, $t4 is set to one. It gets zero otherwise.	
+	slt $t5,$a2,$t3	
+	and $t6,$t4,$t5     		
+        beqz $t6,Big          #branch if zero    
+        
+	addi $a3,$zero,0   #will be used as sum	
+        beqz $a1,Azero         #branch if zero         
+        beqz $a2,Bzero        #branch if zero  	
+Loop:          
+        andi $t2,$a1,1
+	beqz $t2,Next
+	add $a3,$a3,$a2	
+	j Next
+	Next:
+	beq $a1,1,Exit
+	srl $a1,$a1,1
+	sll $a2,$a2,1
+	j Loop
+	
+Exit:  	
+	beq $s2,$s3,Do
+	sub $a3,$zero,$a3
+	Do: j No
+	No:
+        sw $a3,8($a0)
+	addi $v0,$zero,1 
+	j End         					 		
+	Big: 	
+	      addi $v0, $zero, 0 
+End:  
+             jr $ra
+main:
+	la $a0,  num
+	jal mult  
+	j Hop2
+	Azero:addi $v0,$zero,1 
+	j Hop1
+	Bzero:addi $v0,$zero,1 
+	Hop1:
+	Hop2:
+	add $s1, $s1, $v0     #puts $v0 in $s1
+	sub $v0, $v0, $v0     #gives $v0 the value of 0
+	beqz $s1, Fail        #branch if zero, if zero jumps to Fail	
+	li $v0,4	       #print string
+	la $a0,result_s
+	syscall
+	li $v0,1              #print int
+       add $a0,$a3,$zero
+	syscall
+	j End2
+	Fail:
+	li $v0,4              #print String
+       la $a0,error_s
+	syscall	
+End2:   nop
